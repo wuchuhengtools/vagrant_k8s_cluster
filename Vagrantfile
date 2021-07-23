@@ -17,21 +17,87 @@ Vagrant.configure("2") do |config|
   config.vm.define "master" do |m|
     # 配置镜像
     m.vm.box = "centos/stream8"     # 指定镜像
+    ip = "192.168.33.1"
     m.vm.box_version = "20210210.0" # 指定版本
-    m.vm.network "private_network", ip: "192.168.33.1"  # 内网ip
+    m.vm.network "private_network", ip: "#{ip}"  # 内网ip
     m.vm.provider "virtualbox" do |vb|
       vb.name = "master"
     end
+   m.vm.provision "shell", path: "init.sh"
+   m.vm.provision "shell", inline: <<-SHELL
+hostnamectl set-hostname master
+    dir=/root/tools/kuburnets
+    mkdir -p $dir
+    cat << EOF > /root/tools/kuburnets/init-kubeadm.yaml
+    apiVersion: kubeadm.k8s.io/v1beta2
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: abcdef.0123456789abcdef
+  ttl: 24h0m0s
+  usages:
+  - signing
+  - authentication
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: #{ip}
+  bindPort: 6443
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+  name: master
+  taints: null
+---
+apiServer:
+  timeoutForControlPlane: 4m0s
+apiVersion: kubeadm.k8s.io/v1beta2
+certificatesDir: /etc/kubernetes/pki
+clusterName: kubernetes
+controllerManager: {}
+dns:
+  type: CoreDNS
+  # coredns这个镜像国内不好下载，所以专门配置镜像源下载
+  imageRepository: swr.cn-east-2.myhuaweicloud.com/coredns
+  imageTag: 1.8.0
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+imageRepository: registry.aliyuncs.com/k8sxio
+kind: ClusterConfiguration
+kubernetesVersion: 1.21.0
+networking:
+  dnsDomain: cluster.local
+  serviceSubnet: 10.96.0.0/12
+  # 这里子网
+  podSubnet: 10.244.0.0/16
+scheduler: {}
+EOF
+ce $dir
+kubeadm config images pull --config init-kubeadm.yaml
+kubeadm init --config init-kubeadm.yaml
+mkdir -p $HOME/.kube
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+chown $(id -u):$(id -g) $HOME/.kube/config
+wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+docker pull quay.io/coreos/flannel:v0.14.0
+kubectl apply -f kube-flannel.yml
+   SHELL
   end
   # node 节点群
- # (1..2).each do |i|
- #   config.vm.define "node#{i}" do |node|
- #     # 配置镜像
- #     node.vm.box = "centos/stream8"     # 指定镜像
- #     node.vm.box_version = "20210210.0" # 指定版本
- #     node.vm.network "private_network", ip: "192.168.33.#{i + 1}"  # 内网ip
- #   end
- # end
+ (1..2).each do |i|
+   config.vm.define "node#{i}" do |node|
+     # 配置镜像
+     node.vm.box = "centos/stream8"     # 指定镜像
+     node.vm.box_version = "20210210.0" # 指定版本
+     node.vm.network "private_network", ip: "192.168.33.#{i + 1}"  # 内网ip
+    node.vm.provider "virtualbox" do |vb|
+      vb.name = "node#{i + 1}master"
+    end
+   node.vm.provision "shell", inline: <<-SHELL
+    hostnamectl set-hostname node#{i + 1}
+   SHELL
+   node.vm.provision "shell", path: "init.sh"
+   end
+ end
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
@@ -74,6 +140,7 @@ Vagrant.configure("2") do |config|
   
      # Customize the amount of memory on the VM:
      vb.memory = "4096"
+     vb.cpus = 2
    end
   #
   # View the documentation for the provider you are using for more
@@ -82,16 +149,8 @@ Vagrant.configure("2") do |config|
   # Enable provisioning with a shell script. Additional provisioners such as
   # Ansible, Chef, Docker, Puppet and Salt are also available. Please see the
   # documentation for more information about their specific syntax and use.
-   config.vm.provision "shell", inline: <<-SHELL
-     #swapoff -a # 关闭swap交换区
-     #sed -i 's/enforcing/disabled/g' /etc/sysconfig/selinux /etc/sysconfig/selinux #关闭swap交换区
-     #禁用swap交换区
-     # tmp='s/\([^\\n]*swap[^\\n]*\)/#\\1/g\' && sed -i $tmp /etc/fstab /etc/fstab 
-     #setenforce 0  # 关闭setlinux
-     #sed -i 's/enforcing/disabled/g' /etc/sysconfig/selinux /etc/sysconfig/selinux #禁用setlinux
-     #yum -y install yum-utils # yum源配置管理工具 用于下面添加国内源用的
-     #yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo # 添加国内镜像源
-     #yum -y install docker-ce # 安装docker
-     #systemctl enable docker # 开机启动
-   SHELL
+#   config.vm.provision "shell", inline: <<-SHELL
+#   SHELL
+
 end
+
