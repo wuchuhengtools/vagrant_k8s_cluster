@@ -6,6 +6,7 @@ sed -r -i 's/([^\n]*swap[^n]*)/#\1/g' /etc/fstab #禁用swap交换区
 yum -y install yum-utils # yum源配置管理工具 用于下面添加国内源用的
 yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo # 添加国内镜像源
 yum -y install docker-ce # 安装docker
+yum -y install vim
 systemctl enable docker # 开机启动
 # 安装kuburenets 
 cat << EOF > /etc/yum.repos.d/kubernetes.repo

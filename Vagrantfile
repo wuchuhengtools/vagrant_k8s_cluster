@@ -29,7 +29,7 @@ hostnamectl set-hostname master
     dir=/root/tools/kuburnets
     mkdir -p $dir
     cat << EOF > /root/tools/kuburnets/init-kubeadm.yaml
-    apiVersion: kubeadm.k8s.io/v1beta2
+apiVersion: kubeadm.k8s.io/v1beta2
 bootstrapTokens:
 - groups:
   - system:bootstrappers:kubeadm:default-node-token
@@ -84,7 +84,7 @@ kubectl apply -f kube-flannel.yml
   end
   # node 节点群
  (1..2).each do |i|
-   config.vm.define "node#{i}" do |node|
+   config.vm.define "node#{i + 1}" do |node|
      # 配置镜像
      node.vm.box = "centos/stream8"     # 指定镜像
      node.vm.box_version = "20210210.0" # 指定版本
