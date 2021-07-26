@@ -16,86 +16,28 @@ Vagrant.configure("2") do |config|
   # master 节点配置
   config.vm.define "master" do |m|
     # 配置镜像
-    m.vm.box = "centos/stream8"     # 指定镜像
-    ip = "192.168.33.1"
-    m.vm.box_version = "20210210.0" # 指定版本
-    m.vm.network "private_network", ip: "#{ip}"  # 内网ip
+    m.vm.box = "centos/8"     # 指定镜像
+    ip = "192.168.0.200"      # 内网ip
+    m.vm.network "public_network", ip: "#{ip}"
     m.vm.provider "virtualbox" do |vb|
       vb.name = "master"
     end
-   m.vm.provision "shell", path: "init.sh"
-   m.vm.provision "shell", inline: <<-SHELL
-hostnamectl set-hostname master
-    dir=/root/tools/kuburnets
-    mkdir -p $dir
-    cat << EOF > /root/tools/kuburnets/init-kubeadm.yaml
-apiVersion: kubeadm.k8s.io/v1beta2
-bootstrapTokens:
-- groups:
-  - system:bootstrappers:kubeadm:default-node-token
-  token: abcdef.0123456789abcdef
-  ttl: 24h0m0s
-  usages:
-  - signing
-  - authentication
-kind: InitConfiguration
-localAPIEndpoint:
-  advertiseAddress: #{ip}
-  bindPort: 6443
-nodeRegistration:
-  criSocket: /var/run/dockershim.sock
-  name: master
-  taints: null
----
-apiServer:
-  timeoutForControlPlane: 4m0s
-apiVersion: kubeadm.k8s.io/v1beta2
-certificatesDir: /etc/kubernetes/pki
-clusterName: kubernetes
-controllerManager: {}
-dns:
-  type: CoreDNS
-  # coredns这个镜像国内不好下载，所以专门配置镜像源下载
-  imageRepository: swr.cn-east-2.myhuaweicloud.com/coredns
-  imageTag: 1.8.0
-etcd:
-  local:
-    dataDir: /var/lib/etcd
-imageRepository: registry.aliyuncs.com/k8sxio
-kind: ClusterConfiguration
-kubernetesVersion: 1.21.0
-networking:
-  dnsDomain: cluster.local
-  serviceSubnet: 10.96.0.0/12
-  # 这里子网
-  podSubnet: 10.244.0.0/16
-scheduler: {}
-EOF
-ce $dir
-kubeadm config images pull --config init-kubeadm.yaml
-kubeadm init --config init-kubeadm.yaml
-mkdir -p $HOME/.kube
-cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-chown $(id -u):$(id -g) $HOME/.kube/config
-wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
-docker pull quay.io/coreos/flannel:v0.14.0
-kubectl apply -f kube-flannel.yml
-   SHELL
+   m.vm.provision "shell", path: "master.sh" #  master节点的kuburnetes安装流程
   end
   # node 节点群
  (1..2).each do |i|
-   config.vm.define "node#{i + 1}" do |node|
+   config.vm.define "node#{i}" do |node|
      # 配置镜像
      node.vm.box = "centos/stream8"     # 指定镜像
      node.vm.box_version = "20210210.0" # 指定版本
-     node.vm.network "private_network", ip: "192.168.33.#{i + 1}"  # 内网ip
+     node.vm.network "public_network", ip: "192.168.0.20#{1}"
     node.vm.provider "virtualbox" do |vb|
-      vb.name = "node#{i + 1}master"
+      vb.name = "node#{i}"
     end
    node.vm.provision "shell", inline: <<-SHELL
-    hostnamectl set-hostname node#{i + 1}
+    hostnamectl set-hostname node#{i}
    SHELL
-   node.vm.provision "shell", path: "init.sh"
+   node.vm.provision "shell", path: "node.sh" # node 节点的kuburnetes安装流程
    end
  end
 
@@ -117,7 +59,7 @@ kubectl apply -f kube-flannel.yml
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
-   config.vm.network "private_network", ip: "192.168.33.10"
+  # config.vm.network "private_network", ip: "192.168.33.10"
 
   # Create a public network, which generally matched to bridged network.
   # Bridged networks make the machine appear as another physical device on
@@ -128,7 +70,7 @@ kubectl apply -f kube-flannel.yml
   # the path on the host to the actual folder. The second argument is
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
-  # config.vm.synced_folder "../data", "/vagrant_data"
+  # config.vm.synced_folder "./data", "/vagrant_data"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
