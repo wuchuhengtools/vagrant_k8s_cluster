@@ -38,13 +38,13 @@ sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_
 sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/g' /etc/ssh/sshd_config /etc/ssh/sshd_config
 systemctl restart sshd
 
-
 ##############################
 # 4 配置kuburnetes 并启动
 ##############################
 hostnamectl set-hostname master
 dir=/root/tools/kuburnetes
 mkdir -p $dir
+ip=192.168.0.200
 cat << EOF > $dir/init-kubeadm.yaml
 apiVersion: kubeadm.k8s.io/v1beta2
 bootstrapTokens:
@@ -57,7 +57,7 @@ bootstrapTokens:
   - authentication
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: #{ip}
+  advertiseAddress: $ip
   bindPort: 6443
 nodeRegistration:
   criSocket: /var/run/dockershim.sock
@@ -96,3 +96,10 @@ cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 chown $(id -u):$(id -g) $HOME/.kube/config
 kubeadm token create --print-join-command >> joinMaster.sh # 把加入的maste的命令记录下来， 用于node节点过来获取这个文件并运行它就能加入了
 
+#################################################################
+#  5 加入公钥用于初始化子点时，能过来拉取配置加入master节点的配置
+#################################################################
+mkdir -p $HOME/.ssh
+cat << EOF > $HOME/.ssh/authorized_keys
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC2gKcKZHjR4z0/IJWPgZzW8cBiDG1wAv5o4Y7gzFXg0mAj6Iq/A/n7kk8L2Au9FU/r7RXYnkhsPv046big/ywNk2CYdJGEYGh9ZNbrfA9Va4yEsqGT5zgZgeLNcFcPD0lTZPAy0cSMs7waCjNg3pBrLo9wTBHB8Mk7/zuuUCqFRiTL6abY2zpITT4mBWwl81haevt4h5Xkef3z++G13vBOS0j4We+W4wOsgwo7nnDj2C3miVNa1pKLyhGVbMWg0V9Wo30XzfiQVntm48tS7ZVuSnYVlAK+mlOXnJm9GO7zHRgOBcjhuMUIzexrKUOgp++fkcsysnjJEPb+aZk8XHJ7 dev@macdeiMac-Pro.local
+EOF

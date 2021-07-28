@@ -23,6 +23,7 @@ Vagrant.configure("2") do |config|
       vb.name = "master"
     end
    m.vm.provision "shell", path: "master.sh" #  master节点的kuburnetes安装流程
+   m.vm.provision "shell", path: "init-flannel.sh" #  生成flannel配置，用于网络布置
   end
   # node 节点群
  (1..2).each do |i|
@@ -30,14 +31,21 @@ Vagrant.configure("2") do |config|
      # 配置镜像
      node.vm.box = "centos/stream8"     # 指定镜像
      node.vm.box_version = "20210210.0" # 指定版本
-     node.vm.network "public_network", ip: "192.168.0.20#{1}"
+     ip = "192.168.0.20#{1}"
+     nodeName = "node#{i}"
+     node.vm.network "public_network", ip: "#{ip}"
     node.vm.provider "virtualbox" do |vb|
       vb.name = "node#{i}"
     end
    node.vm.provision "shell", inline: <<-SHELL
-    hostnamectl set-hostname node#{i}
+    hostnamectl set-hostname #{nodeName}
+    echo "127.0.0.1 #{nodeName} >> /etc/hosts"
    SHELL
+   node.vm.provider "virtualbox" do |vb|
+     vb.name = "#{nodeName}"
+   end
    node.vm.provision "shell", path: "node.sh" # node 节点的kuburnetes安装流程
+   node.vm.provision "shell", path: "init-flannel.sh" #  生成flannel配置，用于网络布置
    end
  end
 
