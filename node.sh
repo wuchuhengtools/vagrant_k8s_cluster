@@ -2,7 +2,6 @@
 #################################
 # 安装docker 和 kuburnetes前准备
 #################################
-cat /etc/hosts
 swapoff -a # 关闭swap交换区
 sed -i 's/enforcing/disabled/g' /etc/sysconfig/selinux /etc/sysconfig/selinux #禁用 selinux
 setenforce 0  #关闭swap交换区

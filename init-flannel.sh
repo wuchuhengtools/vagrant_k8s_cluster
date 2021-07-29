@@ -1,4 +1,7 @@
 #!/bin/sh
+##############################
+# 6 初始化 flannel 网络
+##############################
 dir=/root/tools/kuburnetes
 mkdir -p $dir
 configFile=$dir/kube-flannel.yaml
@@ -229,3 +232,4 @@ spec:
 EOF
 cd $dr
 p=`cat $configFile | grep image  | awk 'NR==1{print $2}'` && docker pull $p
+kubectl apply -f /root/tools/kuburnetes/kube-flannel.yaml # 启动 flanel 网络
