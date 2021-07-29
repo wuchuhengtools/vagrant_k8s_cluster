@@ -2,6 +2,7 @@
 #################################
 # 安装docker 和 kuburnetes前准备
 #################################
+cat /etc/hosts
 swapoff -a # 关闭swap交换区
 sed -i 's/enforcing/disabled/g' /etc/sysconfig/selinux /etc/sysconfig/selinux #禁用 selinux
 setenforce 0  #关闭swap交换区
@@ -13,13 +14,9 @@ yum -y install vim & # 装个vim编辑方便
 yum -y install yum-utils # yum源配置管理工具 用于下面添加国内源用的
 yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo # 添加国内镜像源
 yum -y install docker-ce # 安装docker
-cat <<EOF> /etc/docker/daemon.json
- {
-   "exec-opts": ["native.cgroupdriver=systemd"]
-}
-EOF
 dnf install -y iproute-tc
 systemctl enable docker # 开机启动
+mkdir /etc/docker
 systemctl start docker
 #################################
 # 2 安装kuburenets 
@@ -50,14 +47,14 @@ sudo su
 cd $HOME
 mkdir -p ~/.kube
 tempfile="/tmp/sftpsync.$$"
-# 把要连接的ip的ssh指纹加入名单中，避免首次连接询问
-ip=192.168.0.200
+# 把要连接的master 节点ip的ssh指纹加入名单中，避免首次连接询问
+masterIp=`cat /etc/hosts | grep master | awk '{print $1}'`
 mkdir -p $HOME/.ssh
 knowHosts=$HOME/.ssh/known_hosts
 touch $knowHosts
 while [[ $(stat -c%s "$knowHosts") == 0 ]]
 do
-    ssh-keyscan $ip >> $knowHosts
+    ssh-keyscan $masterIp >> $knowHosts
     sleep 1
 done
 echo $knowHosts
@@ -95,13 +92,10 @@ chmod 600 $rsaFile
 sleep 1
 mkdir -p /root/tools/kuburnetes
 echo $HOME
-sftp  root@$ip <<EOF
-    ls -ahl
+sftp  root@$masterIp <<EOF
     get /root/.kube/config $HOME/.kube
     get /root/tools/kuburnetes/joinMaster.sh /root/tools/kuburnetes
     quit
 EOF
-ls -ahl /root/.kube
-ls -ahl /root/tools/kuburnetes
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 bash /root/tools/kuburnetes/joinMaster.sh # 加入master节点

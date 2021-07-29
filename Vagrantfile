@@ -1,45 +1,49 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
+IMAGE_NAME = "centos/stream8"     # 指定镜像
+IMAGE_URL = "https://mirrors.ustc.edu.cn/centos-cloud/centos/8-stream/x86_64/images/CentOS-Stream-Vagrant-8-20210210.0.x86_64.vagrant-virtualbox.box" # 镜像国内地址
+IMAGE_VERSION =  "20210210.0"     # 镜像版本
 
-# All Vagrant configuration is done below. The "2" in Vagrant.configure
-# configures the configuration version (we support older styles for
-# backwards compatibility). Please don't change it unless you know what
-# you're doing.
 Vagrant.configure("2") do |config|
-  # The most common configuration options are documented and commented below.
-  # For a complete reference, please see the online documentation at
-  # https://docs.vagrantup.com.
-
-  # Every Vagrant development environment requires a box. You can search for
-  # boxes at https://vagrantcloud.com/search.
+  # configures the master IP
+  masterIp = "192.168.0.200"
+  # configures the group of node ip
+  nodesIP =  [
+    "192.168.0.201",
+    "192.168.0.202"
+  ]
 
   # master 节点配置
   config.vm.define "master" do |m|
     # 配置镜像
-    m.vm.box = "centos/8"     # 指定镜像
-    ip = "192.168.0.200"      # 内网ip
-    m.vm.network "public_network", ip: "#{ip}"
+    m.vm.box = IMAGE_NAME
+    m.vm.box_url = IMAGE_URL
+    m.vm.network "public_network", ip: "#{masterIp}"
+    hostname = "master"
     m.vm.provider "virtualbox" do |vb|
-      vb.name = "master"
+      vb.name = "#{hostname}"
     end
+   m.vm.provision "shell", inline: <<-SHELL
+    echo "127.0.0.1 #{hostname}" >> /etc/hosts
+   SHELL
    m.vm.provision "shell", path: "master.sh" #  master节点的kuburnetes安装流程
    m.vm.provision "shell", path: "init-flannel.sh" #  生成flannel配置，用于网络布置
   end
   # node 节点群
- (1..2).each do |i|
-   config.vm.define "node#{i}" do |node|
+ nodesIP.each do |i|
+   nodeName = "node#{nodesIP.index(i)}"
+   config.vm.define "#{nodeName}" do |node|
      # 配置镜像
-     node.vm.box = "centos/stream8"     # 指定镜像
-     node.vm.box_version = "20210210.0" # 指定版本
-     ip = "192.168.0.20#{1}"
-     nodeName = "node#{i}"
-     node.vm.network "public_network", ip: "#{ip}"
+     node.vm.box = IMAGE_NAME
+     node.vm.box_url = IMAGE_URL
+     node.vm.network "public_network", ip: "#{i}"
     node.vm.provider "virtualbox" do |vb|
-      vb.name = "node#{i}"
+      vb.name = "#{nodeName}"
     end
    node.vm.provision "shell", inline: <<-SHELL
     hostnamectl set-hostname #{nodeName}
-    echo "127.0.0.1 #{nodeName} >> /etc/hosts"
+    echo "127.0.0.1 #{nodeName}" >> /etc/hosts
+    echo "#{masterIp} master" >> /etc/hosts
    SHELL
    node.vm.provider "virtualbox" do |vb|
      vb.name = "#{nodeName}"
@@ -49,58 +53,10 @@ Vagrant.configure("2") do |config|
    end
  end
 
-  # Disable automatic box update checking. If you disable this, then
-  # boxes will only be checked for updates when the user runs
-  # `vagrant box outdated`. This is not recommended.
-  # config.vm.box_check_update = false
-
-  # Create a forwarded port mapping which allows access to a specific port
-  # within the machine from a port on the host machine. In the example below,
-  # accessing "localhost:8080" will access port 80 on the guest machine.
-  # NOTE: This will enable public access to the opened port
-  # config.vm.network "forwarded_port", guest: 80, host: 8080
-
-  # Create a forwarded port mapping which allows access to a specific port
-  # within the machine from a port on the host machine and only allow access
-  # via 127.0.0.1 to disable public access
-  # config.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
-
-  # Create a private network, which allows host-only access to the machine
-  # using a specific IP.
-  # config.vm.network "private_network", ip: "192.168.33.10"
-
-  # Create a public network, which generally matched to bridged network.
-  # Bridged networks make the machine appear as another physical device on
-  # your network.
-  # config.vm.network "public_network"
-
-  # Share an additional folder to the guest VM. The first argument is
-  # the path on the host to the actual folder. The second argument is
-  # the path on the guest to mount the folder. And the optional third
-  # argument is a set of non-required options.
-  # config.vm.synced_folder "./data", "/vagrant_data"
-
-  # Provider-specific configuration so you can fine-tune various
-  # backing providers for Vagrant. These expose provider-specific options.
-  # Example for VirtualBox:
-  #
-   config.vm.provider "virtualbox" do |vb|
-     # Display the VirtualBox GUI when booting the machine
-  #   vb.gui = true
-  
-     # Customize the amount of memory on the VM:
-     vb.memory = "4096"
-     vb.cpus = 2
-   end
-  #
-  # View the documentation for the provider you are using for more
-  # information on available options.
-
-  # Enable provisioning with a shell script. Additional provisioners such as
-  # Ansible, Chef, Docker, Puppet and Salt are also available. Please see the
-  # documentation for more information about their specific syntax and use.
-#   config.vm.provision "shell", inline: <<-SHELL
-#   SHELL
-
+ # cpu 配置
+ config.vm.provider "virtualbox" do |vb|
+   vb.memory = "4096"
+   vb.cpus = 2
+ end
 end
 
