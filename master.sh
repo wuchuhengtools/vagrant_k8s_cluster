@@ -44,7 +44,7 @@ systemctl restart sshd
 hostnamectl set-hostname master
 dir=/root/tools/kuburnetes
 mkdir -p $dir
-ip=192.168.0.200
+ip=`cat /etc/hosts | grep masterIp | awk '{print $1}'`
 cat << EOF > $dir/init-kubeadm.yaml
 apiVersion: kubeadm.k8s.io/v1beta2
 bootstrapTokens:

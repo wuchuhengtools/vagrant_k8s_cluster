@@ -6,11 +6,11 @@ IMAGE_VERSION =  "20210210.0"     # 镜像版本
 
 Vagrant.configure("2") do |config|
   # configures the master IP
-  masterIp = "192.168.0.200"
+  masterIp = "192.168.33.200"
   # configures the group of node ip
   nodesIP =  [
-    "192.168.0.201",
-    "192.168.0.202"
+    "192.168.33.201",
+    "192.168.33.202"
   ]
 
   # master 节点配置
@@ -18,13 +18,14 @@ Vagrant.configure("2") do |config|
     # 配置镜像
     m.vm.box = IMAGE_NAME
     m.vm.box_url = IMAGE_URL
-    m.vm.network "public_network", ip: "#{masterIp}"
+    m.vm.network "private_network", ip: "#{masterIp}"
     hostname = "master"
     m.vm.provider "virtualbox" do |vb|
       vb.name = "#{hostname}"
     end
    m.vm.provision "shell", inline: <<-SHELL
     echo "127.0.0.1 #{hostname}" >> /etc/hosts
+    echo "#{masterIp} masterIp" >> /etc/hosts
    SHELL
    m.vm.provision "shell", path: "master.sh" #  master节点的kuburnetes安装流程
    m.vm.provision "shell", path: "init-flannel.sh" #  生成flannel配置，用于网络布置
@@ -36,7 +37,7 @@ Vagrant.configure("2") do |config|
      # 配置镜像
      node.vm.box = IMAGE_NAME
      node.vm.box_url = IMAGE_URL
-     node.vm.network "public_network", ip: "#{i}"
+     node.vm.network "private_network", ip: "#{i}"
     node.vm.provider "virtualbox" do |vb|
       vb.name = "#{nodeName}"
     end
