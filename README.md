@@ -4,7 +4,6 @@ Kubernetes setup using vagrant
 ## Prerequisites
 * Vagrant 
 * virtualbox
-* land network
 
 ## Usage
 Step 1: to clone the repository
