@@ -12,20 +12,7 @@ Step 1: to clone the repository
 $ git clone https://github.com/wuchuhengtools/vagrant_k8s_cluster.git
 $ cd vagrant_k8s_cluster
 ```
-Step 2: to configure the Land network with `Vagrantfile` 
-``` yaml
-...
-  masterIp = "192.168.0.200"  # <-- the ip for master node
-  # configures the group of node ip 
-  nodesIP =  [ 
-    "192.168.0.201", # <-- the ip for work node
-    "192.168.0.202",
-    ...
-  ]
-  ...
-```
-
-Step 3:  start up the cluster 
+Step 2:  start up the cluster 
 ``` bash 
 $ vagrant up # <-- initialization cluster 
 $ vagrant ssh master
