@@ -30,6 +30,7 @@ repo_gpgcheck=0
 gpgkey=http://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg http://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
 EOF
 yum install -y kubelet kubeadm kubectl # 安装kuburnetes
+echo KUBELET_EXTRA_ARGS=\"--node-ip=`ip addr show eth1 | grep inet | grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}/" | tr -d '/'`\" > /etc/sysconfig/kubelet # 选择使用 eth1 网卡ip
 systemctl enable kubelet 
 systemctl start kubelet
 ##############################

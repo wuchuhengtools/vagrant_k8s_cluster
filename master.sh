@@ -95,6 +95,8 @@ mkdir -p $HOME/.kube
 cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 chown $(id -u):$(id -g) $HOME/.kube/config
 kubeadm token create --print-join-command >> joinMaster.sh # 把加入的maste的命令记录下来， 用于node节点过来获取这个文件并运行它就能加入了
+echo KUBELET_EXTRA_ARGS=\"--node-ip=`ip addr show eth1 | grep inet | grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}/" | tr -d '/'`\" > /etc/sysconfig/kubelet
+systemctl restart kubelet
 
 #################################################################
 #  5 加入公钥用于初始化子点时，能过来拉取配置加入master节点的配置
